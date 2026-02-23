@@ -3,7 +3,8 @@
     "allow": [
       "Bash(npm run dev:*)",
       "Bash(vercel:*)",
-      "Bash(start https://valentaine-eight.vercel.app)"
+      "Bash(start https://valentaine-eight.vercel.app)",
+      "Bash(git push:*)"
     ]
   }
 }

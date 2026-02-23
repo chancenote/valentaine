@@ -29,6 +29,7 @@ body {
   .gold-text {
     background: linear-gradient(to bottom, #d4af37, #f9d71c, #d4af37);
     -webkit-background-clip: text;
+    background-clip: text;
     -webkit-text-fill-color: transparent;
     font-weight: bold;
   }
@@ -58,8 +59,15 @@ body {
 }
 
 @keyframes float {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-15px); }
+
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+
+  50% {
+    transform: translateY(-15px);
+  }
 }
 
 /* Hearts floating upward */
@@ -73,12 +81,15 @@ body {
     transform: translateY(0) rotate(0deg);
     opacity: 0;
   }
+
   10% {
     opacity: 1;
   }
+
   90% {
     opacity: 0.5;
   }
+
   100% {
     transform: translateY(-100vh) rotate(360deg);
     opacity: 0;
@@ -91,6 +102,48 @@ body {
 }
 
 @keyframes twinkle {
-  0%, 100% { opacity: 0; }
-  50% { opacity: 1; }
+
+  0%,
+  100% {
+    opacity: 0;
+  }
+
+  50% {
+    opacity: 1;
+  }
+}
+
+/* Wing flapping animation */
+@keyframes flap-left {
+
+  0%,
+  100% {
+    transform: rotate(-5deg);
+  }
+
+  50% {
+    transform: rotate(15deg);
+  }
+}
+
+@keyframes flap-right {
+
+  0%,
+  100% {
+    transform: rotate(5deg);
+  }
+
+  50% {
+    transform: rotate(-15deg);
+  }
+}
+
+.animate-flap-left {
+  animation: flap-left 0.3s ease-in-out infinite;
+  transform-origin: right center;
+}
+
+.animate-flap-right {
+  animation: flap-right 0.3s ease-in-out infinite;
+  transform-origin: left center;
 }

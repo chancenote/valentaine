@@ -5,70 +5,63 @@ import { motion, AnimatePresence } from "framer-motion";
 import confetti from "canvas-confetti";
 import GiftBox from "./components/GiftBox";
 import LoungeBackground from "./components/LoungeBackground";
-import CursorTrail from "./components/CursorTrail";
-import EasterEgg from "./components/EasterEgg";
-import { Heart } from "lucide-react";
 
 export default function ValentinePage() {
   const [isEntered, setIsEntered] = useState(false);
   const [position, setPosition] = useState({ x: 0, y: 0 });
   const [seconds, setSeconds] = useState(0);
   const [isCelebration, setIsCelebration] = useState(false);
-  const [missCount, setMissCount] = useState(0);
-  const [showFinalMessage, setShowFinalMessage] = useState(false);
   const buttonRef = useRef<HTMLButtonElement>(null);
   const audioRef = useRef<HTMLAudioElement>(null);
 
-  // Button evade logic
-  const handleMouseMove = useCallback(
-    (e: MouseEvent) => {
-      if (isCelebration || !buttonRef.current || !isEntered) return;
+  // Balanced Evade logic
+  const handleMouseMove = useCallback((e: MouseEvent) => {
+    if (isCelebration || !buttonRef.current || !isEntered) return;
 
-      const button = buttonRef.current.getBoundingClientRect();
-      const buttonCenterX = button.left + button.width / 2;
-      const buttonCenterY = button.top + button.height / 2;
+    const button = buttonRef.current.getBoundingClientRect();
+    const buttonCenterX = button.left + button.width / 2;
+    const buttonCenterY = button.top + button.height / 2;
 
-      const distance = Math.sqrt(
-        Math.pow(e.clientX - buttonCenterX, 2) +
-          Math.pow(e.clientY - buttonCenterY, 2)
-      );
+    const distance = Math.sqrt(
+      Math.pow(e.clientX - buttonCenterX, 2) + Math.pow(e.clientY - buttonCenterY, 2)
+    );
 
-      const threshold = 150;
+    const threshold = 180;
 
-      if (distance < threshold) {
-        const moveX = (Math.random() - 0.5) * 400;
-        const moveY = (Math.random() - 0.5) * 300;
+    if (distance < threshold) {
+      // Move away from mouse
+      const angle = Math.atan2(buttonCenterY - e.clientY, buttonCenterX - e.clientX);
+      const moveDistance = 250;
 
-        let newX = position.x + moveX;
-        let newY = position.y + moveY;
+      let newX = position.x + Math.cos(angle) * moveDistance;
+      let newY = position.y + Math.sin(angle) * moveDistance;
 
-        const padding = 100;
-        if (Math.abs(newX) > window.innerWidth / 2 - padding)
-          newX = position.x - moveX;
-        if (Math.abs(newY) > window.innerHeight / 2 - padding)
-          newY = position.y - moveY;
+      // Symmetrical bounds
+      const padding = 120;
+      const maxX = window.innerWidth / 2 - padding;
+      const maxY = window.innerHeight / 2 - padding;
 
-        setPosition({ x: newX, y: newY });
-        setMissCount((prev) => prev + 1);
-      }
-    },
-    [position, isCelebration, isEntered]
-  );
+      if (Math.abs(newX) > maxX) newX = -Math.sign(newX) * (maxX * 0.5);
+      if (Math.abs(newY) > maxY) newY = -Math.sign(newY) * (maxY * 0.5);
+
+      setPosition({ x: newX, y: newY });
+    }
+  }, [position, isCelebration, isEntered]);
 
   useEffect(() => {
     window.addEventListener("mousemove", handleMouseMove);
     return () => window.removeEventListener("mousemove", handleMouseMove);
   }, [handleMouseMove]);
 
-  // Timer - 30 seconds then celebration
   useEffect(() => {
     if (!isEntered || isCelebration) return;
 
     const timer = setInterval(() => {
       setSeconds((prev) => {
-        if (prev + 1 >= 30) {
+        if (prev >= 29) {
           triggerCelebration();
           clearInterval(timer);
+          return 30;
         }
         return prev + 1;
       });
@@ -80,60 +73,36 @@ export default function ValentinePage() {
   const triggerCelebration = () => {
     setIsCelebration(true);
 
-    // Confetti burst
-    const duration = 10 * 1000;
-    const animationEnd = Date.now() + duration;
-    const defaults = { startVelocity: 30, spread: 360, ticks: 60, zIndex: 100 };
-
-    function randomInRange(min: number, max: number) {
-      return Math.random() * (max - min) + min;
-    }
-
-    const interval = setInterval(function () {
-      const timeLeft = animationEnd - Date.now();
-      if (timeLeft <= 0) return clearInterval(interval);
-
-      const particleCount = 50 * (timeLeft / duration);
+    const end = Date.now() + 15 * 1000;
+    const frame = () => {
       confetti({
-        ...defaults,
-        particleCount,
-        origin: { x: randomInRange(0.1, 0.3), y: Math.random() - 0.2 },
-        colors: ["#ff4d6d", "#ff85a1", "#fbb1bd", "#d4af37", "#fff"],
+        particleCount: 3,
+        angle: 60,
+        spread: 55,
+        origin: { x: 0 },
+        colors: ['#ff4d6d', '#ffb3c1', '#d4af37', '#ffffff']
       });
       confetti({
-        ...defaults,
-        particleCount,
-        origin: { x: randomInRange(0.7, 0.9), y: Math.random() - 0.2 },
-        colors: ["#ff4d6d", "#ff85a1", "#fbb1bd", "#d4af37", "#fff"],
+        particleCount: 3,
+        angle: 120,
+        spread: 55,
+        origin: { x: 1 },
+        colors: ['#ff4d6d', '#ffb3c1', '#d4af37', '#ffffff']
       });
-    }, 250);
 
-    // Show final message last with delay
-    setTimeout(() => {
-      setShowFinalMessage(true);
-    }, 3000);
+      if (Date.now() < end) requestAnimationFrame(frame);
+    };
+    frame();
   };
 
-  const handleStartMusic = () => {
-    if (audioRef.current) {
-      audioRef.current.play().catch(() => {});
-    }
-  };
-
-  const getEncouragementMessage = () => {
-    if (missCount === 0) return "";
-    if (missCount < 5) return `${missCount}번 놓쳤어요 😅`;
-    if (missCount < 10) return `${missCount}번... 조금만 더!`;
-    if (missCount < 20) return `${missCount}번... 포기하지 마세요! 💪`;
-    if (missCount < 30) return `${missCount}번... 당신의 끈기가 놀라워요!`;
-    return `${missCount}번... 당신의 끈기가 바로 사랑입니다 ❤️`;
+  const handleStart = () => {
+    setIsEntered(true);
+    if (audioRef.current) audioRef.current.play().catch(() => { });
   };
 
   return (
-    <main className="relative min-h-screen flex flex-col items-center justify-center overflow-hidden">
+    <main className="relative min-h-screen flex flex-col items-center justify-center overflow-hidden bg-black selection:bg-rose-500/30">
       <LoungeBackground />
-      <CursorTrail />
-      <EasterEgg />
 
       <audio
         ref={audioRef}
@@ -141,33 +110,32 @@ export default function ValentinePage() {
         loop
       />
 
-      {/* Entry Screen */}
       <AnimatePresence>
         {!isEntered && (
           <motion.div
-            initial={{ opacity: 1 }}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
             exit={{ opacity: 0, scale: 1.1 }}
-            className="fixed inset-0 z-[100] bg-gradient-to-b from-[#1a0011] to-black flex flex-col items-center justify-center gap-8"
+            className="fixed inset-0 z-[100] bg-black/90 backdrop-blur-sm flex flex-col items-center justify-center gap-12"
           >
-            <motion.div
-              animate={{ scale: [1, 1.1, 1] }}
-              transition={{ repeat: Infinity, duration: 2 }}
-              className="text-6xl"
-            >
-              🎁
-            </motion.div>
-            <h1 className="text-3xl md:text-5xl gold-text font-serif text-center px-4">
-              Special Gift For You
-            </h1>
-            <p className="text-white/50 text-sm">당신을 위한 특별한 선물이 있어요</p>
+            <div className="flex flex-col items-center gap-4 text-center">
+              <motion.span
+                animate={{ scale: [1, 1.2, 1] }}
+                transition={{ repeat: Infinity, duration: 2 }}
+                className="text-4xl"
+              >
+                💌
+              </motion.span>
+              <h1 className="text-2xl md:text-3xl text-white/90 font-light tracking-[0.2em] uppercase">
+                당신을 위한 특별한 선물이 있어요.
+              </h1>
+            </div>
+
             <motion.button
-              whileHover={{ scale: 1.05 }}
+              whileHover={{ scale: 1.05, boxShadow: "0 0 30px rgba(225, 29, 72, 0.4)" }}
               whileTap={{ scale: 0.95 }}
-              onClick={() => {
-                setIsEntered(true);
-                handleStartMusic();
-              }}
-              className="premium-button text-white text-lg mt-4"
+              onClick={handleStart}
+              className="premium-button text-white px-16 py-4 tracking-widest text-lg border-white/10"
             >
               입장하기
             </motion.button>
@@ -175,160 +143,83 @@ export default function ValentinePage() {
         )}
       </AnimatePresence>
 
-      {/* Main Content */}
       <AnimatePresence mode="wait">
-        {isEntered && !isCelebration && (
+        {isEntered && !isCelebration ? (
           <motion.div
-            key="gift-view"
-            initial={{ opacity: 0, scale: 0.8 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 1.2, filter: "blur(10px)" }}
-            className="flex flex-col items-center gap-6 z-10"
+            key="gift-scene"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="relative flex flex-col items-center justify-center w-full h-full"
           >
-            <h2 className="text-2xl md:text-4xl text-white/80 font-serif text-center px-4">
-              당신을 위한 선물이 도착했어요
-            </h2>
+            <div className="mb-20 scale-90 md:scale-100">
+              <GiftBox />
+            </div>
 
-            {/* Gift Box - stays in center */}
-            <GiftBox />
-
-            {/* Evading Button */}
             <motion.button
               ref={buttonRef}
               animate={{ x: position.x, y: position.y }}
-              transition={{ type: "spring", stiffness: 150, damping: 15 }}
-              className="premium-button text-white text-lg z-20"
+              transition={{ type: "spring", stiffness: 250, damping: 25 }}
+              className="relative flex items-center justify-center p-8 select-none"
             >
-              🎀 박스 열기
-            </motion.button>
-
-            <p className="text-white/30 text-sm italic">
-              버튼을 눌러서 선물을 열어보세요...
-            </p>
-
-            {/* Encouragement Message */}
-            <AnimatePresence mode="wait">
-              {missCount > 0 && (
-                <motion.p
-                  key={getEncouragementMessage()}
-                  initial={{ opacity: 0, y: -10, scale: 0.9 }}
-                  animate={{ opacity: 1, y: 0, scale: 1 }}
-                  exit={{ opacity: 0, y: 10 }}
-                  className="text-pink-300 text-lg font-bold"
-                >
-                  {getEncouragementMessage()}
-                </motion.p>
-              )}
-            </AnimatePresence>
-          </motion.div>
-        )}
-
-        {/* Celebration View */}
-        {isCelebration && (
-          <motion.div
-            key="celebration-view"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            className="flex flex-col items-center gap-6 z-10 text-center px-6"
-          >
-            {/* Animated Heart */}
-            <motion.div
-              animate={{
-                scale: [1, 1.3, 1],
-                rotate: [0, 5, -5, 0],
-              }}
-              transition={{ repeat: Infinity, duration: 2 }}
-            >
-              <Heart className="w-20 h-20 text-red-500 fill-current" />
-            </motion.div>
-
-            {/* Miss Count */}
-            {missCount > 0 && (
-              <motion.div
-                initial={{ opacity: 0, scale: 0.8 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ delay: 0.5 }}
-                className="px-6 py-3 bg-gradient-to-r from-red-500/20 to-pink-500/20 rounded-full border border-pink-300/30"
-              >
-                <p className="text-pink-200 text-lg">
-                  <span className="font-bold">{missCount}번</span>의 시도 끝에 도착했네요 🎉
-                </p>
-              </motion.div>
-            )}
-
-            {/* Portfolio Card */}
-            <motion.div
-              initial={{ opacity: 0, y: 30 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 1 }}
-              className="glass-card p-8 rounded-2xl max-w-2xl w-full"
-            >
-              <h3 className="text-2xl gold-text mb-4 font-serif">
-                Portfolio of My Heart
-              </h3>
-              <p className="text-white/60 mb-6">
-                저는 따뜻한 코드를 작성하고, 당신을 위한 행복을 디자인하는 개발자입니다.
-              </p>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="p-4 bg-white/5 rounded-xl border border-pink-300/10">
-                  <h4 className="font-bold text-pink-400">Main Skill</h4>
-                  <p className="text-sm text-white/60">당신을 사랑하기</p>
+              {/* Perfectly Balanced Symmetrical Wings */}
+              <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                {/* Left Wing */}
+                <div className="absolute -left-16 w-20 h-16 opacity-90 animate-flap-left origin-right">
+                  <svg viewBox="0 0 100 60" className="w-full h-full drop-shadow-[0_0_12px_rgba(255,255,255,0.4)]">
+                    <path
+                      d="M100,30 C100,30 60,0 10,10 C-10,20 20,50 60,50 C80,50 100,30 100,30"
+                      className="fill-white/40 stroke-white/60 stroke-1"
+                    />
+                  </svg>
                 </div>
-                <div className="p-4 bg-white/5 rounded-xl border border-pink-300/10">
-                  <h4 className="font-bold text-pink-400">Experience</h4>
-                  <p className="text-sm text-white/60">함께한 모든 날들</p>
+                {/* Right Wing (Perfect Mirror) */}
+                <div className="absolute -right-16 w-20 h-16 opacity-90 animate-flap-right origin-left scale-x-[-1]">
+                  <svg viewBox="0 0 100 60" className="w-full h-full drop-shadow-[0_0_12px_rgba(255,255,255,0.4)]">
+                    <path
+                      d="M100,30 C100,30 60,0 10,10 C-10,20 20,50 60,50 C80,50 100,30 100,30"
+                      className="fill-white/40 stroke-white/60 stroke-1"
+                    />
+                  </svg>
                 </div>
               </div>
-            </motion.div>
 
-            {/* FINAL MESSAGE - appears last */}
-            <AnimatePresence>
-              {showFinalMessage && (
-                <motion.div
-                  initial={{ opacity: 0, y: 40, scale: 0.9 }}
-                  animate={{ opacity: 1, y: 0, scale: 1 }}
-                  transition={{ duration: 1.2, ease: "easeOut" }}
-                  className="mt-8"
-                >
-                  <motion.h2
-                    animate={{
-                      textShadow: [
-                        "0 0 20px rgba(212,175,55,0.3)",
-                        "0 0 40px rgba(212,175,55,0.6)",
-                        "0 0 20px rgba(212,175,55,0.3)",
-                      ],
-                    }}
-                    transition={{ repeat: Infinity, duration: 3 }}
-                    className="text-4xl md:text-6xl gold-text font-serif leading-tight"
-                  >
-                    당신이 나의<br />최고의 선물입니다
-                  </motion.h2>
-                  <motion.p
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    transition={{ delay: 1.5 }}
-                    className="text-white/60 text-xl mt-6"
-                  >
-                    함께하는 모든 순간이 저에겐 축복입니다.
-                  </motion.p>
-                </motion.div>
-              )}
-            </AnimatePresence>
+              <div className="premium-button text-white whitespace-nowrap px-12 py-4 text-xl font-bold bg-gradient-to-r from-rose-600 to-rose-800 shadow-[0_10px_40px_rgba(225,29,72,0.4)] border-white/20">
+                선물 열기
+              </div>
+            </motion.button>
 
-            <div className="absolute inset-0 -z-10 bg-red-900/20 blur-[120px] rounded-full" />
+            {/* Subtle Tracking Progress */}
+            <div className="fixed bottom-12 w-64 h-1 bg-white/5 rounded-full overflow-hidden backdrop-blur-sm">
+              <motion.div
+                className="h-full bg-gradient-to-r from-rose-500 to-amber-500"
+                animate={{ width: `${(seconds / 30) * 100}%` }}
+              />
+            </div>
+          </motion.div>
+        ) : isCelebration && (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.8 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="z-50 flex flex-col items-center text-center gap-12"
+          >
+            <motion.h2
+              animate={{ textShadow: ["0 0 20px rgba(212,175,55,0.2)", "0 0 50px rgba(212,175,55,0.5)", "0 0 20px rgba(212,175,55,0.2)"] }}
+              transition={{ repeat: Infinity, duration: 3 }}
+              className="text-6xl md:text-9xl gold-text font-serif leading-tight px-4"
+            >
+              당신이 나의<br />최고의 선물입니다.
+            </motion.h2>
+            <motion.p
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 1 }}
+              className="text-white/40 text-xl md:text-2xl font-extralight tracking-[0.5em] uppercase"
+            >
+              Forever With You
+            </motion.p>
           </motion.div>
         )}
       </AnimatePresence>
-
-      {/* Progress Bar */}
-      {isEntered && !isCelebration && (
-        <div className="fixed bottom-10 left-1/2 -translate-x-1/2 w-64 h-1.5 bg-white/10 rounded-full overflow-hidden">
-          <motion.div
-            className="h-full bg-gradient-to-r from-pink-500 via-red-500 to-yellow-400"
-            animate={{ width: `${(seconds / 30) * 100}%` }}
-          />
-        </div>
-      )}
     </main>
   );
 }
